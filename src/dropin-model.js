@@ -35,6 +35,7 @@ function DropinModel(options) {
   this.dependencySuccessCount = 0;
   this.failedDependencies = {};
   this._options = options;
+  this._setupComplete = false;
 
   EventEmitter.call(this);
 }
@@ -60,6 +61,10 @@ DropinModel.prototype.initialize = function () {
     self._paymentMethods = paymentMethods;
     self._paymentMethodIsRequestable = self._paymentMethods.length > 0;
   });
+};
+
+DropinModel.prototype.confirmDropinReady = function () {
+  this._setupComplete = true;
 };
 
 DropinModel.prototype.isPaymentMethodRequestable = function () {
@@ -140,6 +145,12 @@ DropinModel.prototype.confirmPaymentMethodDeletion = function (paymentMethod) {
 DropinModel.prototype._shouldEmitRequestableEvent = function (options) {
   var requestableStateHasNotChanged = this.isPaymentMethodRequestable() === options.isRequestable;
   var typeHasNotChanged = options.type === this._paymentMethodRequestableType;
+
+  if (!this._setupComplete) {
+    // don't emit event until after Drop-in is fully set up
+    // fixes issues with lazy loading of imports where this event
+    return false;
+  }
 
   if (requestableStateHasNotChanged && (!options.isRequestable || typeHasNotChanged)) {
     return false;
